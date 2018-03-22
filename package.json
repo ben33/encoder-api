@@ -6,19 +6,19 @@
   "repository": "https://github.com/ben33/encoder-api.git",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon --legacy-watch --experimental-modules src/server.mjs",
-    "build": "node fuse build"
+    "dev": "nodemon --legacy-watch --watch src --experimental-modules src/server.mjs"
   },
   "devDependencies": {
     "nodemon": "^1.12.1"
   },
   "dependencies": {
     "body-parser": "^1.18.2",
+    "cors": "^2.8.4",
     "express": "^4.16.2",
+    "file-extension": "^4.0.2",
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^4.0.2",
-    "glob": "^7.1.2",
-    "glob-promise": "^3.3.0",
+    "lodash": "^4.17.5",
     "lowdb": "^1.0.0"
   }
 }

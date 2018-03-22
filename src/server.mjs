@@ -1,15 +1,22 @@
 import express from 'express'
 import bodyParser from 'body-parser'
 import ffmpeg from 'fluent-ffmpeg'
-import glob from 'glob-promise'
+import pickBy from 'lodash/pickBy'
 import fs from 'fs-extra'
+import cors from 'cors'
+import fileExtension from 'file-extension'
 
 import db from './database'
 
+const videoExtensions = ['mkv', 'm2ts']
 const server = express()
+server.use(cors())
 const port = process.env.PORT ? process.env.PORT : 8080
+const videosToEncodeFolder = process.env.ROOT_FOLDER_VIDEOS ? process.env.ROOT_FOLDER_VIDEOS : '/app/videos/to-encode'
 
-function convertMetadata(file, metadata){
+server.use(express.static(videosToEncodeFolder))
+
+function convertMetadata(file, metadata) {
     const convert = {
         file,
         size: metadata.format.size,
@@ -19,7 +26,7 @@ function convertMetadata(file, metadata){
         subtitle: []
     }
     metadata.streams.forEach(stream => {
-        switch(stream.codec_type){
+        switch (stream.codec_type) {
             case 'video':
                 convert.video.push({
                     index: stream.index,
@@ -31,13 +38,13 @@ function convertMetadata(file, metadata){
                     index: stream.index,
                     codec: stream.codec_name,
                     channel: stream.channel_layout,
-                    language: stream.tags && stream.tags.language || 'N/A'
+                    language: stream.tags && stream.tags.language || null
                 })
                 break
             case 'subtitle':
                 convert.subtitle.push({
                     index: stream.index,
-                    language: stream.tags && stream.tags.language || 'N/A'
+                    language: stream.tags && stream.tags.language || null
                 })
                 break
             default:
@@ -49,11 +56,33 @@ function convertMetadata(file, metadata){
 
 server.use(bodyParser.json());
 server.use(bodyParser.urlencoded({
-  extended: true
+    extended: true
 }));
 
+
+server.get('/fs', (req, res) => {
+    const path = videosToEncodeFolder + req.query.path
+    const response = []
+    fs.readdir(path, (err, files) => {
+        if (files) {
+            files.forEach(fileName => {
+                const file = path + fileName
+                let stats = fs.lstatSync(file)
+                if (stats.isFile()) {
+                    if (videoExtensions.indexOf(fileExtension(file)) !== -1) {
+                        response.push({ name: fileName, isDirectory: stats.isDirectory(), path: file.replace(videosToEncodeFolder, '') })
+                    }
+                } else {
+                    response.push({ name: fileName, isDirectory: stats.isDirectory() })
+                }
+            })
+        }
+        res.send(response)
+    })
+})
+
 server.get('/videos', (req, res) => {
-    glob('**/*.?(mkv|m2ts)', {cwd: '/videos-to-encode', nocase: true})
+    glob('**/*.?(mkv|m2ts)', { cwd: '/videos-to-encode', nocase: true })
         .then(videos => res.send(videos))
         .catch(err => {
             console.log(err)
@@ -63,18 +92,18 @@ server.get('/videos', (req, res) => {
 
 server.get('/videos/*', (req, res) => {
     const file = req.params[0]
-    fs.pathExists('/videos-to-encode/' + file)
+    fs.pathExists(videosToEncodeFolder + file)
         .then(fileExists => {
-            if(fileExists){
-                ffmpeg.ffprobe('/videos-to-encode/' + file, function(err, metadata) {
-                    if(err){
+            if (fileExists) {
+                ffmpeg.ffprobe(videosToEncodeFolder + file, function (err, metadata) {
+                    if (err) {
                         throw err
                     }
                     res.send(convertMetadata(file, metadata))
                 })
-            }else{
+            } else {
                 const err = new Error()
-                err.message = 'File does not exist: '+ file
+                err.message = 'File does not exist: ' + file
                 err.status = 404
                 throw err
             }
@@ -88,18 +117,42 @@ server.get('/encoder', (req, res) => {
     res.send(encoder)
 })
 
+server.get('/encoder/formats', (req, res) => {
+    ffmpeg.getAvailableFormats(function (err, formats) {
+        res.send(pickBy(formats, format => format.canDemux && format.canMux))
+    });
+})
+
+server.get('/encoder/codecs', (req, res) => {
+    const filter = req.query.type
+    ffmpeg.getAvailableCodecs(function (err, codecs) {
+        res.send(pickBy(codecs, codec => codec.canEncode && codec.type == filter))
+    });
+})
+
+server.get('/settings/codecs', (req, res) => {
+    const encoder = db.get('settings').value()
+    res.send(encoder.codecs)
+})
+
+server.get('/encoder/filters', (req, res) => {
+    ffmpeg.getAvailableFilters(function (err, codecs) {
+        res.send(pickBy(codecs, filter => true))
+    });
+})
+
 server.post('/encoder/queue', (req, res) => {
-    const {video, form} = req.body
+    const { video, form } = req.body
     const queue = db.get('encoder.queue')
-                    .push({
-                        video,
-                        options: convertFormIntoOptions(form)
-                    })
-                    .write()
+        .push({
+            video,
+            options: convertFormIntoOptions(form)
+        })
+        .write()
     res.status(201).send(queue)
 })
 
-function convertFormIntoOptions(plop){
+function convertFormIntoOptions(plop) {
     return plop
 }
 
