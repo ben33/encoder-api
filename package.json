@@ -6,9 +6,12 @@
   "repository": "https://github.com/ben33/encoder-api.git",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon --legacy-watch --watch src --experimental-modules src/server.mjs"
+    "dev": "nodemon --legacy-watch --watch src --experimental-modules src/server.mjs",
+    "test": "mocha"
   },
   "devDependencies": {
+    "chai": "^4.1.2",
+    "mocha": "^5.0.5",
     "nodemon": "^1.12.1"
   },
   "dependencies": {
@@ -19,6 +22,8 @@
     "fluent-ffmpeg": "^2.1.2",
     "fs-extra": "^4.0.2",
     "lodash": "^4.17.5",
-    "lowdb": "^1.0.0"
+    "lodash-id": "^0.14.0",
+    "lowdb": "^1.0.0",
+    "socket.io": "^2.0.4"
   }
 }

@@ -1,8 +1,10 @@
 import lowdb from 'lowdb'
 import FileSync from 'lowdb/adapters/FileSync'
+import lodashId from 'lodash-id'
 
 const adapter = new FileSync('/app/db.json')
 const db = lowdb(adapter)
+db._.mixin(lodashId)
 
 db.defaults({
     settings: {
@@ -18,9 +20,9 @@ db.defaults({
         }
     },
     encoder: {
-        status: 'stopped',
-        queue:[]
-    }
+        status: 'stopped'
+    },
+    queue:[]
 })
 .write()
 

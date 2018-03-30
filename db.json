@@ -1,0 +1,38 @@
+{
+  "settings": {
+    "codecs": {
+      "audio": [
+        {
+          "key": "aac",
+          "text": "aac"
+        },
+        {
+          "key": "ac3",
+          "text": "ac3"
+        }
+      ],
+      "video": [
+        {
+          "key": "libx265",
+          "text": "libx265",
+          "defaultOptions": {
+            "preset": "slow",
+            "quality": 22
+          }
+        },
+        {
+          "key": "libx264",
+          "text": "libx264",
+          "defaultOptions": {
+            "preset": "slow",
+            "quality": 22
+          }
+        }
+      ]
+    }
+  },
+  "encoder": {
+    "status": "stopped"
+  },
+  "queue": []
+}
